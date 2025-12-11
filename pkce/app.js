@@ -1,5 +1,5 @@
 const CLIENT_ID = "0406d127fdb14a7c8c19482cf4eccdd5";
-const REDIRECT_URI = "http://127.0.0.1:5500/index.html"; // должен совпадать в настройках OAuth
+const REDIRECT_URI = "http://127.0.0.1:5500/index.html"; 
 
 const authUrl = "https://oauth.yandex.ru/authorize";
 const tokenUrl = "https://oauth.yandex.ru/token";
@@ -7,12 +7,13 @@ const tokenUrl = "https://oauth.yandex.ru/token";
 const loginBtn = document.getElementById("login");
 const result = document.getElementById("result");
 
-// 1. Нажатие кнопки → редирект пользователя на Яндекс OAuth
 loginBtn.onclick = async () => {
   const codeVerifier = PKCE.randomString();
   const codeChallenge = await PKCE.sha256base64url(codeVerifier);
 
   sessionStorage.setItem("code_verifier", codeVerifier);
+
+  const scopes = "wiki:read wiki:write login:email";
 
   const url =
     authUrl +
@@ -21,12 +22,11 @@ loginBtn.onclick = async () => {
     `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
     `&code_challenge=${codeChallenge}` +
     `&code_challenge_method=S256` +
-    `&scope=cloud_api:disk.read`;
+    `&scope=${encodeURIComponent(scopes)}`;
 
   window.location.href = url;
 };
 
-// 2. Если Яндекс вернул code — обмен на access_token
 async function handleRedirect() {
   const params = new URLSearchParams(window.location.search);
   const code = params.get("code");
@@ -50,6 +50,15 @@ async function handleRedirect() {
 
   const json = await resp.json();
   result.textContent = "OAuth Response:\n" + JSON.stringify(json, null, 2);
+
+  const respUserInfo = await fetch("https://login.yandex.ru/info?format=json", {
+    headers: {
+      "Authorization": `OAuth ${json.access_token}`
+    }
+  });
+
+  const userInfo = await respUserInfo.json();
+  result.textContent += "\n Email: " + JSON.stringify(userInfo, null, 2);
 }
 
 // Запускаем обработку

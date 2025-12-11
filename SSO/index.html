@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Yandex Identity Hub Demo</title>
+</head>
+<body>
+    <h1>Yandex Identity Hub</h1>
+
+    <button id="login">Войти через Yandex</button>
+
+    <script>
+        const loginBtn = document.getElementById("login");
+
+        loginBtn.onclick = () => {
+        const authUrl = `https://auth.yandex.cloud/oauth/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPE)}`;
+        window.location.href = authUrl;
+        };
+
+        // После редиректа с code
+        async function handleCallback() {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get("code");
+        if (!code) return;
+
+        // Отправляем code на backend для обмена на JWT
+        const resp = await fetch("/auth/callback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code })
+        });
+        const data = await resp.json();
+
+        // Сохраняем JWT (можно в memory или cookie)
+        localStorage.setItem("id_token", data.id_token);
+        }
+
+        handleCallback();
+    </script>
+
+</body>
+</html>
